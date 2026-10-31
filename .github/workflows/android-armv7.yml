@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_NDK_VERSION: 27.2.12479018
       ANDROID_API_LEVEL: 24
       CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER: armv7a-linux-androideabi24-clang
@@ -30,11 +31,13 @@ jobs:
         with:
           targets: armv7-linux-androideabi
 
-      - name: Verify preinstalled Android SDK
+      - name: Locate preinstalled Android SDK manager
         run: |
-          test -x "$(command -v sdkmanager)"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "SDK manager: $SDKMANAGER"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          "$SDKMANAGER" --version
 
       - name: Install pinned NDK
         run: |
