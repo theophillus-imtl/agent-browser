@@ -45,7 +45,7 @@ pub(super) fn disk_free_bytes(path: &Path) -> Option<u64> {
     if unsafe { libc::statvfs(c_path.as_ptr(), &mut stat) } != 0 {
         return None;
     }
-    Some(stat.f_bavail as u64 * stat.f_frsize)
+    Some((stat.f_bavail as u64) * (stat.f_frsize as u64))
 }
 
 #[cfg(windows)]
