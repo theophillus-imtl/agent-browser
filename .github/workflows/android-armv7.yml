@@ -48,7 +48,7 @@ jobs:
           echo "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "Using NDK: $NDK"
-          armv7a-linux-androideabi${ANDROID_API_LEVEL}-clang --version
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_API_LEVEL}-clang" --version
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
