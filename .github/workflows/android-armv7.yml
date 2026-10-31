@@ -30,8 +30,11 @@ jobs:
         with:
           targets: armv7-linux-androideabi
 
-      - name: Install Android SDK and NDK
-        uses: android-actions/setup-android@v3
+      - name: Verify preinstalled Android SDK
+        run: |
+          test -x "$(command -v sdkmanager)"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          sdkmanager --version
 
       - name: Install pinned NDK
         run: |
