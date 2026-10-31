@@ -1,0 +1,86 @@
+name: Android ARMv7 cross-build probe
+
+on:
+  push:
+    branches:
+      - termux/android-armv7-probe
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-armv7:
+    name: Android ARMv7 (32-bit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_NDK_VERSION: 27.2.12479018
+      ANDROID_API_LEVEL: 24
+      CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER: armv7a-linux-androideabi24-clang
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Rust Android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: armv7-linux-androideabi
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+          NDK="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          test -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_API_LEVEL}-clang"
+          echo "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
+          echo "Using NDK: $NDK"
+          armv7a-linux-androideabi${ANDROID_API_LEVEL}-clang --version
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+
+      - name: Check all Rust targets
+        run: cargo check --locked --all-targets --manifest-path cli/Cargo.toml --target armv7-linux-androideabi
+
+      - name: Build Android ARMv7 executable
+        run: cargo build --locked --release --manifest-path cli/Cargo.toml --target armv7-linux-androideabi
+
+      - name: Verify executable architecture and Android linker
+        run: |
+          set -euxo pipefail
+          BIN="cli/target/armv7-linux-androideabi/release/agent-browser"
+          test -s "$BIN"
+          file "$BIN"
+          readelf -h "$BIN"
+          readelf -l "$BIN" | tee elf-program-headers.txt
+          grep -E 'Requesting program interpreter: /system/bin/linker' elf-program-headers.txt
+          readelf -d "$BIN" | tee elf-dynamic-section.txt
+          mkdir -p artifacts
+          cp "$BIN" artifacts/agent-browser-android-armv7
+          chmod 755 artifacts/agent-browser-android-armv7
+          {
+            echo "target=armv7-linux-androideabi"
+            echo "android_api_level=${ANDROID_API_LEVEL}"
+            echo "ndk_version=${ANDROID_NDK_VERSION}"
+            rustc --version
+            cargo --version
+            sha256sum artifacts/agent-browser-android-armv7
+          } > artifacts/BUILD-INFO.txt
+
+      - name: Upload Android ARMv7 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-browser-android-armv7
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
