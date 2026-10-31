@@ -1830,6 +1830,11 @@ fn build_playwright_binary_path(chromium_dir: &Path) -> PathBuf {
     chromium_dir.join("chrome-linux64/chrome")
 }
 
+#[cfg(target_os = "android")]
+fn build_playwright_binary_path(chromium_dir: &Path) -> PathBuf {
+    chromium_dir.join("chrome")
+}
+
 #[cfg(target_os = "macos")]
 fn build_playwright_binary_path(chromium_dir: &Path) -> PathBuf {
     chromium_dir.join("chrome-mac/Chromium.app/Contents/MacOS/Chromium")
